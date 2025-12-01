@@ -1,0 +1,13 @@
+User-agent: *
+Disallow: /api/
+Disallow: /server.cjs
+Disallow: /package.json
+Disallow: /tsconfig.json
+Disallow: /node_modules/
+Disallow: /dist/*.map
+Disallow: /admin/            
+Disallow: /profile           
+
+Allow: / 
+
+Sitemap: https://www.chronoodyssey.com.br/sitemap.xml

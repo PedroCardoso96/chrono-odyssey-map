@@ -1,0 +1,35 @@
+/* Estilização customizada do popup do Leaflet */
+.custom-popup-black .leaflet-popup-content-wrapper {
+  background: #111; /* fundo preto bem escuro */
+  color: #eee; /* texto branco */
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  border: 2px solid #d4af37; /* borda dourada */
+}
+
+.custom-popup-black .leaflet-popup-tip {
+  background: #111; /* a "setinha" do popup também preta */
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
+}
+
+.custom-popup-black .leaflet-popup-content {
+  margin: 8px 12px;
+}
+
+/* Estilo botão remover (só pra deixar harmônico) */
+.custom-popup-black button.remove-marker-btn {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: #b91c1c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.custom-popup-black button.remove-marker-btn:hover {
+  background: #8a1414;
+}
