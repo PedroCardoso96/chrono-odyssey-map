@@ -3,7 +3,7 @@
 ![Project Status](https://img.shields.io/badge/Status-Em_Produção-success)
 ![License](https://img.shields.io/badge/License-All_Rights_Reserved-red)
 
-> **Acesse o projeto online:** [🔗 chronoodysseymap.com](SEU_LINK_AQUI)
+> **Acesse o projeto online:** [🔗 chronoodysseymap.com.br](https://www.chronoodyssey.com.br/)
 
 Um mapa interativo robusto e responsivo desenvolvido para a comunidade do MMORPG **Chrono Odyssey**. O projeto resolve a necessidade dos jogadores de localizar recursos, chefes e pontos de interesse em tempo real, oferecendo uma experiência de navegação fluida similar ao Google Maps.
 
