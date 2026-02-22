@@ -1,0 +1,24 @@
+// tsconfig.worker.json
+{
+  "compilerOptions": {
+    "module": "CommonJS",         // Define o sistema de módulo (CommonJS para Node.js)
+    "target": "ES2020",           // Define a versão do JavaScript de saída
+    "outDir": "./dist/backend/workers", // Onde os arquivos JS compilados serão colocados
+    "strict": true,               // Habilita todas as verificações de tipo estritas
+    "esModuleInterop": true,      // Permite import/export mais flexíveis
+    "skipLibCheck": true,         // Pula a verificação de tipo de arquivos de declaração
+    "forceConsistentCasingInFileNames": true, // Garante que o casing dos nomes dos arquivos seja consistente
+    "moduleResolution": "node",   // Como os módulos são resolvidos
+    "resolveJsonModule": true     // Permite importar arquivos .json
+  },
+  "include": [
+    // Define quais arquivos TypeScript devem ser incluídos na compilação
+    "src/backend/workers/timerWorker.ts" 
+  ],
+  "exclude": [
+    // Define quais arquivos/pastas devem ser excluídos
+    "node_modules",
+    "**/*.spec.ts",
+    "dist"
+  ]
+}
