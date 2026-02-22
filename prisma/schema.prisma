@@ -1,0 +1,90 @@
+// prisma/schema.prisma
+
+generator client {
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "debian-openssl-3.0.x", "windows"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// MODIFICADO: Model User
+model User {
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  picture     String?
+  isAdmin     Boolean   @default(false)
+  isPremium   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // ✅ NOVOS CAMPOS DE PERFIL
+  nickname    String?   // Apelido do usuário
+  bio         String?   // Pequena biografia
+  twitchUrl   String?   // URL do canal da Twitch
+
+  markers     Marker[]
+  accounts    Account[]
+}
+
+// NOVO MODEL: Account
+model Account {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider          String
+  providerAccountId String
+  
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([provider, providerAccountId])
+}
+
+// MODIFICADO: Model Marker
+model Marker {
+  id          Int       @id @default(autoincrement())
+  lat         Float
+  lng         Float
+  type        String
+  label       String
+  description String?
+  status      String    @default("pending")
+  
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  
+  createdAt   DateTime  @default(now())
+}
+
+model RespawnTimer {
+  id                  String    @id @default(uuid())
+  entityId            String    @unique
+  entityName          String
+  category            String
+  location            String
+  lat                 Float
+  lng                 Float
+  baseRespawnSeconds  Int
+  lastKilledAt        DateTime?
+  nextRespawnAt       DateTime
+  isActive            Boolean   @default(true)
+  isPremium           Boolean   @default(true)
+  mapSection          String?
+  icon                String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+

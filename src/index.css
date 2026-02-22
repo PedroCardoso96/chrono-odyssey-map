@@ -1,0 +1,461 @@
+/* FORÇAR CSS DO LEAFLET */
+@import 'leaflet/dist/leaflet.css';
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===================================================================
+ * 🎯 MARCADORES CUSTOMIZADOS
+ * ================================================================= */
+
+/* Garantir visibilidade dos marcadores */
+.leaflet-marker-icon {
+  z-index: 1000 !important;
+}
+
+.leaflet-marker-shadow {
+  z-index: 999 !important;
+}
+
+/* Marcadores customizados básicos */
+.custom-marker-fallback,
+[class*="custom-marker-"] {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Hover effect suave */
+.leaflet-marker-icon:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+  z-index: 1001 !important;
+}
+
+
+/* ================================================================= */
+
+
+/* ===================================================================
+ * 🎯 FALLBACK AUTOMÁTICO PARA IMAGENS
+ * ================================================================= */
+
+/* Quando a imagem não carrega, mostra o emoji */
+[class*="custom-marker-"] .marker-container {
+  position: relative;
+}
+
+/* Se a imagem falhar no carregamento, mostra emoji */
+[class*="custom-marker-"] .marker-container .emoji-fallback {
+  opacity: 0;
+}
+
+/* CSS para detectar falha de imagem e mostrar emoji */
+[class*="custom-marker-"] .marker-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: inherit;
+  background-size: inherit;
+  background-position: inherit;
+  background-repeat: inherit;
+}
+
+/* Quando não há background-image válida */
+[class*="custom-marker-"] div:not([style*="background-image"]) .emoji-fallback,
+[class*="custom-marker-"] div[style*="background-image: url('')"] .emoji-fallback {
+  opacity: 1 !important;
+}
+
+/* ================================================================= */
+
+
+/* Header */
+.bgheader {
+  background-image: url(/header.webp);
+  background-size: 100%;
+  background-repeat:no-repeat;
+  background-position: center;
+
+}
+
+
+/* FORÇAR VISIBILIDADE DO MAPA */
+.leaflet-container {
+ 	background: black !important;
+  	height: 100% !important;
+  	width: 100% !important;
+}
+
+#map {
+  	background: black !important;
+  	height: 100% !important;
+    width: 100% !important;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sidebar Customizada - APENAS o essencial para animação */
+.custom-sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 370px;
+  height: 100%;
+  background-color: #3a3a3a;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 9990;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.custom-sidebar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.custom-sidebar::-webkit-scrollbar-track {
+  background: #2f2f2f; /* fundo escuro discreto */
+}
+
+.custom-sidebar::-webkit-scrollbar-thumb {
+  background: #c2a763; /* dourado */
+  border-radius: 4px;
+}
+
+.custom-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #d4af37; /* dourado mais claro no hover */
+}
+
+.custom-sidebar.closed {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.custom-sidebar {
+  scrollbar-color: #c2a763 #2f2f2f; /* thumb e track */
+  scrollbar-width: thin;
+}
+
+@media (max-width: 768px) {
+  .custom-sidebar {
+    width: 50% !important;
+  }
+}
+
+/* ======================================================== */
+/* ===================================================================
+ * 🎯 BOTÕES DE TOGGLE DA SIDEBAR - VERSÃO NOVA E ROBUSTA
+ * ================================================================= */
+
+/* Botão de ABRIR (fora da sidebar, quando fechada) */
+.toggle-open-btn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  position: fixed;
+  top: 80px;
+  left: 20px;
+  z-index: 9998;
+}
+
+.toggle-open-btn:hover {
+ filter: brightness(1.35);
+}
+
+
+
+ /*Botão de FECHAR (dentro da sidebar, no header) */
+.toggle-close-btn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  z-index: 9998;
+
+}
+
+ .toggle-close-btn:hover {
+  filter: brightness(1.35);
+}
+
+/* Garantir que os botões fiquem sempre visíveis */
+.toggle-open-btn,
+.toggle-close-btn {
+  outline: none;
+  user-select: none;
+}
+
+.toggle-open-btn:focus,
+.toggle-close-btn:focus {
+  box-shadow: 0 0 0 3px rgba(194, 167, 99, 0.3);
+}
+
+
+/* ========================================================== */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  color: #c2a763;
+
+}
+
+.sidebar-content {
+  padding: 1rem;
+  color: #c2a763;
+}
+
+
+.filter-section {
+  margin-bottom: 1.5rem;
+  color: #c2a763;
+}
+
+.filter-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 16px;
+  color: #c2a763;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.25rem;
+  color: #c2a763;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  color: #c2a763;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+
+
+/* ===================================================================
+ * 🎯 LAYOUT EM 2 COLUNAS PARA FILTROS
+ * ================================================================= */
+
+/* Garantir que o grid funcione bem */
+.category-section .grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Melhorar responsividade em telas menores */
+@media (max-width: 768px) {
+  .category-section .grid {
+    grid-template-columns: 1fr;
+    /* Uma coluna em telas pequenas */
+  }
+}
+
+/* Truncar texto longo para caber nas colunas */
+.category-section label span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Garantir que checkboxes não encolham */
+.category-section input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+
+/* Sidebar responsiva */
+@media (max-width: 768px) {
+  .custom-sidebar {
+    width: 50% !important;
+  }
+}
+
+/* Estilo dos checkboxes */
+input[type="checkbox"] {
+  accent-color: #c2a763;
+}
+
+/* ================================================================== */
+
+/* Ajuste dos controles do Leaflet para não ficarem sobre a sidebar */
+.leaflet-top.leaflet-right {
+  right: 20px !important;
+  top: 20px !important;
+}
+
+.leaflet-control-zoom {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 0px;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+button:hover {
+  border-color: #4d4d4d;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+
+/* ===================================================================
+ * 🎯 GARANTIR VISIBILIDADE DOS MARCADORES
+ * ================================================================= */
+
+/* Garantir que marcadores do Leaflet apareçam */
+.leaflet-marker-icon {
+  z-index: 1000 !important;
+}
+
+.leaflet-marker-shadow {
+  z-index: 999 !important;
+}
+
+/* ===================================================================
+ * 🎯 LÓGICA DE FALLBACK PARA ÍCONES
+ * ================================================================= */
+
+/* Por padrão, emoji fica escondido */
+[class*="custom-marker-"] .emoji-fallback {
+  opacity: 0 !important;
+}
+
+/* Se a imagem não carregar, mostra o emoji */
+[class*="custom-marker-"] div {
+  background-image: var(--icon-url);
+}
+
+/* Fallback JavaScript para quando imagem falha */
+.marker-icon-failed .emoji-fallback {
+  opacity: 1 !important;
+}
+
+/* Se não tem background-image válida, mostra emoji */
+[class*="custom-marker-"] div:not([style*="background-image"]) .emoji-fallback,
+[class*="custom-marker-"] div[style*="background-image: url('')"] .emoji-fallback {
+  opacity: 1 !important;
+}
+
+
+/* BORDA DOURADA IMG */
+.image-border {
+  border-style: solid;
+  border-width: 0px; /* ajuste para a espessura da borda */
+  border-image-source: url('/public/site/border-large.webp');
+  border-image-slice: 30; /* ajuste conforme a imagem (geralmente 30 funciona para imagens 90x90) */
+  border-image-repeat: round; /* repete a imagem para preencher a borda */
+  border-image-outset: 0;
+  border-image-width: 20px;
+  /* border-radius: 18px; arredonda os cantos para combinar com a imagem */
+  background-clip: padding-box; /* para o fundo não cobrir a borda */
+  transition: box-shadow 0.3s, filter 0.3s;
+  z-index: 20;
+}
+
+.image-border:hover {
+  box-shadow:
+    0 0px 2px 0.5px #8f7d1566,
+    0 0 2px 0.5px black;
+  filter: brightness(1.35);
+  z-index: 2;
+  border-radius: 2px;
+}
+
+.image-border-2 {
+  border-style: solid;
+  border-width: 0px; /* ajuste para a espessura da borda */
+  border-image-source: url('/public/site/border-large.webp');
+  border-image-slice: 30; /* ajuste conforme a imagem (geralmente 30 funciona para imagens 90x90) */
+  border-image-repeat: round; /* repete a imagem para preencher a borda */
+  border-image-outset: 0;
+  border-image-width: 20px;
+  /* border-radius: 18px; arredonda os cantos para combinar com a imagem */
+  background-clip: padding-box; /* para o fundo não cobrir a borda */
+ 
+}
+
+.google-button{
+  border-radius: 0px;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;  
+}
+

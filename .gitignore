@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+
+# Database (Prisma / SQLite)
+# Impede que o seu banco local de teste seja enviado para o GitHub
+*.db
+*.db-journal
+/prisma/dev.db
+
+# Vite / TypeScript
+# Pastas de cache que o Vite cria para acelerar o desenvolvimento
+.vite
+*.tsbuildinfo
+
+# Variáveis de ambiente extras
+# Garante que variações como .env.local também fiquem protegidas
+.env.*
+!.env.example
+
+# Builds de Backend
+# Como você usa comandos para compilar o backend separadamente
+dist-backend
+
+# Segredos do Google
+client_secret_*.json
+*.json
+
+# Banco de dados e logs
+logs/

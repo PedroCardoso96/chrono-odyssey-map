@@ -1,0 +1,47 @@
+/* HoverCardTilt.css */
+.hover-card-tilt {
+  /* faz o card ocupar todo o contêiner */
+  width: 100%;
+  height: 100%;
+
+  position: relative;
+  perspective: 900px;
+  transform-style: preserve-3d;
+  transition: transform 0.2s ease;           /* suaviza retorno */
+
+  /* variáveis controladas via JS */
+  --rx: 0deg;
+  --ry: 0deg;
+  --tx: 0px;
+  --ty: 0px;
+
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  will-change: transform;                    /* performance */
+}
+
+.hover-card-tilt img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+.card-base {
+  border-radius: 12px;
+  backface-visibility: hidden;               /* evita piscar */
+}
+
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateZ(40px) translate(var(--tx), var(--ty)) scale(0.93);
+  transition: opacity 0.35s ease;
+}
+
+.hover-card-tilt:hover .card-overlay {
+  opacity: 1;
+  transform: translateZ(40px) translate(var(--tx), var(--ty)) scale(1);
+}
