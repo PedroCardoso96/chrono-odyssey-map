@@ -1,19 +1,40 @@
+// src/components/LanguageSwitcher.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from '../contexts/AuthContext'; // Importação necessária para telemetria
 
 const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
+  const { token } = useAuth(); // Acessamos o token para validar a gravação no DB
 
   const languages = [
     { code: "en", label: "EN" },
     { code: "pt", label: "PT" },
     { code: "fr", label: "FR" },
     { code: "de", label: "DE" },
-	{ code: "es", label: "ES" },
+    { code: "es", label: "ES" },
   ];
 
-  const handleChange = (lng: string) => {
+  const handleChange = async (lng: string) => {
+    // 1. Aplicação Visual: i18n altera o idioma localmente
     i18n.changeLanguage(lng);
+
+    // 2. Telemetria para Fase 3: Captura silenciosa da região no banco de dados
+    if (token) {
+      try {
+        await fetch('/api/users/me', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ language: lng }) // Salva a linguagem no perfil para triangulação futura
+        });
+      } catch (err) {
+        // Falha silenciosa para não interromper a experiência do usuário
+        console.warn("[TELEMETRIA] Não foi possível mapear a região no DB.");
+      }
+    }
   };
 
   return (

@@ -561,7 +561,7 @@ export const MARKER_TYPES: MarkerType[] = [
     color: '#8A2BE2'
   },
   {
-    key: 'elitejewelChest',
+    key: 'eliteJewelChest',
     label: 'Elite Jewel Chest',
     labelKey: 'eliteJewelChest',
     icon: '',

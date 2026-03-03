@@ -7,14 +7,18 @@ import { isAdmin } from '../../middleware/isAdmin.js';
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// Rota PATCH /api/users/me (SEU CÓDIGO ORIGINAL - SEM ALTERAÇÕES)
+// --- ROTA: PATCH /api/users/me (CORRIGIDA PARA BUILD E TELEMETRIA) ---
 router.patch('/me', authMiddleware, async (req: Request, res: Response) => {
-  if (!req.user?.id) {
-    return res.status(401).json({ message: 'Usuário não autenticado.' });
+  // Usamos 'as any' para evitar o erro TS2339, já que o payload do seu JWT usa 'userId'
+  const user = req.user as any;
+  const userId = user?.userId || user?.id;
+
+  if (!userId) {
+    console.error("[AUTH ERROR] userId não encontrado no payload do token.");
+    return res.status(401).json({ message: 'Usuário não autenticado ou token inválido.' });
   }
 
-  const userId = req.user.id;
-  const { nickname, bio, twitchUrl } = req.body;
+  const { nickname, bio, twitchUrl, language, theme } = req.body;
 
   try {
     const updatedUser = await prisma.user.update({
@@ -23,10 +27,21 @@ router.patch('/me', authMiddleware, async (req: Request, res: Response) => {
         nickname: nickname !== undefined ? nickname : undefined,
         bio: bio !== undefined ? bio : undefined,
         twitchUrl: twitchUrl !== undefined ? twitchUrl : undefined,
+        language: language !== undefined ? language : undefined,
+        theme: theme !== undefined ? theme : undefined,
       },
       select: { 
-        id: true, name: true, email: true, picture: true, isPremium: true, 
-        isAdmin: true, nickname: true, bio: true, twitchUrl: true,
+        id: true, 
+        name: true, 
+        email: true, 
+        picture: true, 
+        isPremium: true, 
+        isAdmin: true, 
+        nickname: true, 
+        bio: true, 
+        twitchUrl: true,
+        language: true, 
+        theme: true 
       }
     });
 
@@ -34,17 +49,29 @@ router.patch('/me', authMiddleware, async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error(`Erro ao atualizar perfil do usuário ${userId}:`, error);
     if (error.code === 'P2025') {
-      return res.status(404).json({ message: 'Usuário não encontrado.' });
+      return res.status(404).json({ message: 'Usuário não encontrado no banco de dados.' });
     }
     res.status(500).json({ message: 'Erro interno do servidor ao atualizar perfil.' });
   }
 });
 
-// Rota GET /api/users (SEU CÓDIGO ORIGINAL - SEM ALTERAÇÕES)
+// --- ROTA: GET /api/users (ADMIN: LISTAGEM COMPLETA) ---
 router.get('/', authMiddleware, isAdmin, async (_req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, picture: true, isPremium: true, isAdmin: true, nickname: true, bio: true, twitchUrl: true }
+      select: { 
+        id: true, 
+        name: true, 
+        email: true, 
+        picture: true, 
+        isPremium: true, 
+        isAdmin: true, 
+        nickname: true, 
+        bio: true, 
+        twitchUrl: true,
+        language: true,
+        theme: true
+      }
     });
     res.json(users);
   } catch (error) {
@@ -53,17 +80,25 @@ router.get('/', authMiddleware, isAdmin, async (_req: Request, res: Response) =>
   }
 });
 
-
-// --- ✅ NOVAS ROTAS ADICIONADAS PARA O ADMIN ---
-
-// ROTA ADICIONADA: GET /api/users/:userId
-// Objetivo: Buscar os dados de um utilizador específico (Apenas Admin)
+// --- ROTA: GET /api/users/:userId (ADMIN: BUSCA ESPECÍFICA) ---
 router.get('/:userId', authMiddleware, isAdmin, async (req: Request, res: Response) => {
   const { userId } = req.params;
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, picture: true, isPremium: true, isAdmin: true, nickname: true, bio: true, twitchUrl: true }
+      select: { 
+        id: true, 
+        name: true, 
+        email: true, 
+        picture: true, 
+        isPremium: true, 
+        isAdmin: true, 
+        nickname: true, 
+        bio: true, 
+        twitchUrl: true,
+        language: true,
+        theme: true
+      }
     });
 
     if (!user) {
@@ -76,11 +111,10 @@ router.get('/:userId', authMiddleware, isAdmin, async (req: Request, res: Respon
   }
 });
 
-// ROTA ADICIONADA: PATCH /api/users/:userId
-// Objetivo: Permite que um admin atualize o perfil de qualquer utilizador.
+// --- ROTA: PATCH /api/users/:userId (ADMIN: ATUALIZAÇÃO DE QUALQUER PERFIL) ---
 router.patch('/:userId', authMiddleware, isAdmin, async (req: Request, res: Response) => {
     const { userId } = req.params;
-    const { nickname, bio, twitchUrl, isPremium } = req.body;
+    const { nickname, bio, twitchUrl, isPremium, language, theme } = req.body;
     try {
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -89,8 +123,22 @@ router.patch('/:userId', authMiddleware, isAdmin, async (req: Request, res: Resp
                 bio: bio !== undefined ? bio : undefined,
                 twitchUrl: twitchUrl !== undefined ? twitchUrl : undefined,
                 isPremium: isPremium !== undefined ? isPremium : undefined,
+                language: language !== undefined ? language : undefined,
+                theme: theme !== undefined ? theme : undefined,
             },
-            select: { id: true, name: true, email: true, picture: true, isPremium: true, isAdmin: true, nickname: true, bio: true, twitchUrl: true }
+            select: { 
+              id: true, 
+              name: true, 
+              email: true, 
+              picture: true, 
+              isPremium: true, 
+              isAdmin: true, 
+              nickname: true, 
+              bio: true, 
+              twitchUrl: true,
+              language: true, 
+              theme: true 
+            }
         });
         res.json(updatedUser);
     } catch (error: any) {

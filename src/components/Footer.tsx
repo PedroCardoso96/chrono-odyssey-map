@@ -3,13 +3,13 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTwitter, faYoutube, faDiscord } from "@fortawesome/free-brands-svg-icons";
+// ADICIONADO: faInstagram e faTiktok importados aqui
+import { faTwitter, faYoutube, faDiscord, faInstagram, faTiktok } from "@fortawesome/free-brands-svg-icons";
 
 export default function Footer() {
   const { t } = useTranslation();
 
   return (
-    // Substituído 'bg-chrono' por 'bg-dark-card-bg' e 'text-gray-100' por 'text-text-white'
     <footer className="bg-dark-card-bg text-text-white px-6 py-10 text-sm border-t border-dark-border">
       <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         <div>
@@ -46,6 +46,7 @@ export default function Footer() {
                 {t("footer.officialDiscord")}
               </a>
             </li>
+            {/* OPCIONAL: Adicionar Instagram e TikTok também na lista de links acima se desejar */}
             <li>
               <a href="https://x.com/ChronoOdysseyOF" target="_blank" rel="noopener noreferrer" className="text-text-white hover:text-accent-gold underline transition">
                 {t("footer.twitter")}
@@ -63,19 +64,22 @@ export default function Footer() {
           <h4 className="text-accent-gold font-semibold mb-3">{t("footer.contact")}</h4>
           <p className="text-text-white mb-2">{t("footer.email")}</p>
           <div className="flex gap-4 mt-3">
-            <a
-              href="https://x.com/ChronoOdysseyOF"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Twitter"
-            >
+            <a href="https://x.com/ChronoOdysseyOF" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
               <FontAwesomeIcon icon={faTwitter} className="w-5 h-5 text-text-white hover:text-accent-gold transition" />
             </a>
-            <a href="https://www.youtube.com/@ChronoOdyssey" target="_blank" rel="noopener noreferrer" aria-label="Youtube" >
+            <a href="https://www.youtube.com/@ChronoOdyssey" target="_blank" rel="noopener noreferrer" aria-label="Youtube">
               <FontAwesomeIcon icon={faYoutube} className="w-5 h-5 text-text-white hover:text-accent-gold transition" />
             </a>
-            <a href="https://discord.gg/gCqggucFTE" target="_blank" rel="noopener noreferrer" aria-label="Discord" >
+            <a href="https://discord.gg/gCqggucFTE" target="_blank" rel="noopener noreferrer" aria-label="Discord">
               <FontAwesomeIcon icon={faDiscord} className="w-5 h-5 text-text-white hover:text-accent-gold transition" />
+            </a>
+            
+            {/* NOVOS BOTÕES ADICIONADOS ABAIXO */}
+            <a href="https://www.instagram.com/chronoodyssey_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+              <FontAwesomeIcon icon={faInstagram} className="w-5 h-5 text-text-white hover:text-accent-gold transition" />
+            </a>
+            <a href="https://www.tiktok.com/@chronoodyssey_oficial" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+              <FontAwesomeIcon icon={faTiktok} className="w-5 h-5 text-text-white hover:text-accent-gold transition" />
             </a>
           </div>
         </div>

@@ -2,8 +2,8 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
-import fs from 'fs'; // Manter se necessário para HTTPS local
-import https from 'https'; // Manter se necessário para HTTPS local
+import fs from 'fs'; 
+import https from 'https'; 
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { fileURLToPath } from 'url';
@@ -18,21 +18,19 @@ import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const prisma = new PrismaClient();
 
-// Inicializa o cliente do Stripe com sua chave secreta e versão da API
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-//   apiVersion: '2025-06-30.basil',
   typescript: true,
 });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Ajuste para encontrar a raiz do projeto, que contém 'src' e 'middleware'
-const projectRoot = path.resolve(__dirname, '..'); // '..' de 'src' leva à raiz do projeto
 
-// ✅ MUDANÇA CRÍTICA AQUI: O distPath deve apontar para a raiz da sua pasta de build.
-// Se seu frontend compila para `ChronoOdysseyMap/dist/client`, então `distPath` deve ser `ChronoOdysseyMap/dist`.
-// E `express.static` e `res.sendFile` apontarão para `client`.
-const distBase = path.join(projectRoot, 'dist'); // Assumindo que 'dist' está na raiz do projeto
+const isCompiled = __dirname.includes(path.join('dist', 'src'));
+const projectRoot = isCompiled 
+    ? path.resolve(__dirname, '..', '..') 
+    : path.resolve(__dirname, '..');
+
+const distBase = path.join(projectRoot, 'dist');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,7 +46,7 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(cors(corsOptions));
 
-// ROTA DO WEBHOOK DO STRIPE (ANTES DO PARSER JSON)
+// ROTA DO WEBHOOK DO STRIPE
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const sig = req.headers['stripe-signature'] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -56,33 +54,24 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
 
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    console.log('✅ Webhook verificado com sucesso.');
   } catch (err: any) {
-    console.error(`❌ Erro na verificação do webhook: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const userId = session.metadata?.userId;
-
     if (userId) {
       try {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { isPremium: true },
-        });
-        console.log(`✅ Usuário ${userId} agora é Premium.`);
+        await prisma.user.update({ where: { id: userId }, data: { isPremium: true } });
       } catch (dbError) {
-        console.error(`❌ Erro ao atualizar usuário ${userId} no banco de dados:`, dbError);
+        console.error(`Erro ao atualizar usuário:`, dbError);
       }
     }
   }
-  
   res.status(200).json({ received: true });
 });
 
-// Parser JSON (para TODAS as outras rotas) - DEPOIS DO WEBHOOK
 app.use(express.json());
 
 // Middlewares de segurança
@@ -95,63 +84,84 @@ app.use((req, res, next) => {
     next();
 });
 
-
 // --- ROTAS DA API ---
 app.use('/api/auth', authRoutes);
 app.use('/api/markers', markerRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/users', usersRoutes);
 
-// Rota dos timers premium
-app.get('/api/timers', authMiddleware, async (req, res) => {
-    if (!req.user || !req.user.id) {
-        return res.status(401).json({ message: 'Usuário não autenticado corretamente.' });
-    }
+// --- SISTEMA DE NOTÍCIAS (CRUD COMPLETO) ---
+
+// 1. GET: Listar notícias (Pública)
+app.get('/newsapi/noticias', async (req, res) => {
     try {
-        if (!ENABLE_TIMERS_FOR_ALL_TEMPORARILY) {
-            if (!req.user.isPremium) {
-                return res.status(403).json({ message: 'Acesso negado. Assinatura premium necessária.' });
-            }
-        }
-        let whereClause: { isActive: boolean; isPremium?: boolean } = { isActive: true };
-        if (!ENABLE_TIMERS_FOR_ALL_TEMPORARILY) {
-            whereClause.isPremium = false;
-        }
-        const timers = await prisma.respawnTimer.findMany({
-            where: whereClause,
-            orderBy: { nextRespawnAt: 'asc' },
+        const noticias = await prisma.post.findMany({
+            orderBy: { publishedAt: 'desc' },
+            include: { author: { select: { name: true, nickname: true } } }
         });
+        res.json(noticias);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao buscar notícias" });
+    }
+});
+
+// 2. POST: Criar notícia (Admin)
+app.post('/newsapi/noticias', authMiddleware, async (req, res) => {
+    if (!req.user || !req.user.isAdmin) return res.status(403).json({ message: 'Acesso negado.' });
+    const { title, contentHtml, sourceUrl } = req.body;
+    try {
+        const slug = title.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+        const novaNoticia = await prisma.post.create({
+            data: { title, slug, contentHtml, sourceUrl, authorId: req.user.id },
+        });
+        res.status(201).json(novaNoticia);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao criar notícia." });
+    }
+});
+
+// 3. PATCH: Editar notícia (Admin)
+app.patch('/newsapi/noticias/:id', authMiddleware, async (req, res) => {
+    if (!req.user || !req.user.isAdmin) return res.status(403).json({ message: 'Acesso negado.' });
+    const { title, contentHtml, sourceUrl } = req.body;
+    try {
+        const slug = title ? title.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '') : undefined;
+        const noticiaAtualizada = await prisma.post.update({
+            where: { id: req.params.id },
+            data: { title, contentHtml, sourceUrl, slug }
+        });
+        res.json(noticiaAtualizada);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao atualizar notícia." });
+    }
+});
+
+// 4. DELETE: Remover notícia (Admin)
+app.delete('/newsapi/noticias/:id', authMiddleware, async (req, res) => {
+    if (!req.user || !req.user.isAdmin) return res.status(403).json({ message: 'Acesso negado.' });
+    try {
+        await prisma.post.delete({ where: { id: req.params.id } });
+        res.json({ message: "Notícia removida." });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao remover notícia." });
+    }
+});
+
+// Timers Premium
+app.get('/api/timers', authMiddleware, async (req, res) => {
+    if (!req.user?.id) return res.status(401).json({ message: 'Não autenticado.' });
+    try {
+        let whereClause: any = { isActive: true };
+        if (!ENABLE_TIMERS_FOR_ALL_TEMPORARILY && !req.user.isPremium) whereClause.isPremium = false;
+        const timers = await prisma.respawnTimer.findMany({ where: whereClause, orderBy: { nextRespawnAt: 'asc' } });
         res.json(timers);
     } catch (error) {
-        console.error('Erro ao buscar timers de respawn:', error);
-        res.status(500).json({ message: 'Falha ao carregar timers de respawn.' });
+        res.status(500).json({ message: 'Erro nos timers.' });
     }
 });
 
-
-// --- ARQUIVOS ESTÁTICOS ---
-// Serve os arquivos estáticos compilados pelo frontend (Vite)
-// ✅ MUDANÇA: Aponta para a pasta 'client' dentro da sua pasta de build 'dist'
 app.use(express.static(path.join(distBase, 'client')));
+app.get('*', (req, res) => { res.sendFile(path.join(distBase, 'client', 'index.html')); });
 
-
-
-
-// --- ROTA DE FALLBACK (Catch-all) ---
-// Esta rota deve ser a ÚLTIMA. Ela captura todas as requisições que não foram correspondidas por APIs ou arquivos estáticos.
-app.get('*', (req, res) => {
-    // ✅ MUDANÇA: Aponta para o index.html dentro da pasta 'client'
-    res.sendFile(path.join(distBase, 'client', 'index.html'));
-});
-
-
-
-
-// Listener para fechar a conexão do Prisma quando o servidor encerrar
-process.on('beforeExit', async () => {
-    await prisma.$disconnect();
-});
-
-app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-});
+process.on('beforeExit', async () => { await prisma.$disconnect(); });
+app.listen(PORT, () => { console.log(`Servidor rodando na porta ${PORT}`); });

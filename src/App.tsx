@@ -18,7 +18,10 @@ const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 const PaymentCanceledPage = lazy(() => import('./pages/PaymentCanceledPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
-const AdminUserEditPage = lazy(() => import('./pages/AdminUserEditPage')); // <-- 1. IMPORTA A PÁGINA DE EDIÇÃO
+const AdminUserEditPage = lazy(() => import('./pages/AdminUserEditPage'));
+
+// --- NOVA PÁGINA: CALLBACK TWITCH (Fase 1) ---
+const TwitchCallback = lazy(() => import('./pages/TwitchCallback'));
 
 // --- Componente de Loading ---
 const PageLoading = () => (
@@ -27,7 +30,6 @@ const PageLoading = () => (
   </div>
 );
 
-// --- Componente Principal da Aplicação ---
 export default function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -49,7 +51,11 @@ export default function App() {
                 <Route path="/payment/canceled" element={<PaymentCanceledPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-                <Route path="/admin/user/:userId" element={<AdminUserEditPage />} /> {/* <-- 2. ADICIONA A NOVA ROTA */}
+                <Route path="/admin/user/:userId" element={<AdminUserEditPage />} />
+                
+                {/* --- ROTA DE AUTENTICAÇÃO UNIFICADA (TWITCH) --- */}
+                <Route path="/auth/callback/twitch" element={<TwitchCallback />} />
+                
               </Routes>
             </Suspense>
           </BrowserRouter>

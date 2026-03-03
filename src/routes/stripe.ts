@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 // Inicializa o Stripe com sua chave secreta e versão da API
 // Certifique-se de que process.env.STRIPE_SECRET_KEY está definido
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-06-30.basil', // Use a versão mais recente da API, ou a que você já estava usando
+  apiVersion: '2025-08-27.basil', // Use a versão mais recente da API, ou a que você já estava usando
   typescript: true,
 });
 

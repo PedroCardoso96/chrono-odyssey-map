@@ -1,44 +1,74 @@
 // prisma/schema.prisma
 
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "debian-openssl-3.0.x", "windows"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "windows"]
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// MODIFICADO: Model User
+// MODEL: User (Centraliza a identidade unificada e preferências)
 model User {
-  id          String    @id @default(cuid())
-  name        String
-  email       String    @unique
-  picture     String?
-  isAdmin     Boolean   @default(false)
-  isPremium   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  picture      String?
+  isAdmin      Boolean   @default(false)
+  isPremium    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  // ✅ NOVOS CAMPOS DE PERFIL
-  nickname    String?   // Apelido do usuário
-  bio         String?   // Pequena biografia
-  twitchUrl   String?   // URL do canal da Twitch
+  // FASE 1: LOGIN UNIFICADO
+  // Permite que o mesmo usuário vincule múltiplas portas de entrada
+  discordId    String?   @unique
+  twitchId     String?   @unique
+  googleId     String?   @unique
 
-  markers     Marker[]
-  accounts    Account[]
+  // FASE 1: PERSISTÊNCIA DE PREFERÊNCIAS
+  // Sincronização de interface entre dispositivos
+  language     String    @default("en") // i18n
+  theme        String    @default("dark")
+
+  // PERFIL E SOCIAL
+  nickname     String?   
+  bio          String?   
+  twitchUrl    String?   
+
+  // Relacionamentos
+  markers      Marker[]
+  accounts     Account[]
+  posts        Post[]    
 }
 
-// NOVO MODEL: Account
+// MODEL: Post (Sistema de Notícias)
+model Post {
+  id           String    @id @default(cuid())
+  title        String
+  slug         String    @unique 
+  contentHtml  String    
+  sourceUrl    String?   
+  publishedAt  DateTime  @default(now()) 
+  
+  // Relacionamento com o autor (Admin)
+  authorId     String
+  author       User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([slug]) 
+}
+
+// MODEL: Account (OAuth Providers)
 model Account {
   id                String    @id @default(cuid())
   userId            String
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   provider          String
   providerAccountId String
-  
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -46,14 +76,13 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   @@unique([provider, providerAccountId])
 }
 
-// MODIFICADO: Model Marker
+// MODEL: Marker (Pontos no Mapa)
 model Marker {
   id          Int       @id @default(autoincrement())
   lat         Float
@@ -62,13 +91,12 @@ model Marker {
   label       String
   description String?
   status      String    @default("pending")
-  
   authorId    String?
   author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  
   createdAt   DateTime  @default(now())
 }
 
+// MODEL: RespawnTimer (Timers de Bosses e Entidades)
 model RespawnTimer {
   id                  String    @id @default(uuid())
   entityId            String    @unique
@@ -87,4 +115,3 @@ model RespawnTimer {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
-

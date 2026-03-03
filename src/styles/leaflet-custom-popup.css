@@ -1,35 +1,99 @@
 /* Estilização customizada do popup do Leaflet */
 .custom-popup-black .leaflet-popup-content-wrapper {
-  background: #111; /* fundo preto bem escuro */
-  color: #eee; /* texto branco */
+  background: #111;
+  color: #eee;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 14px;
-  border: 2px solid #d4af37; /* borda dourada */
+  border: 2px solid #d4af37; /* Mantive seu dourado original */
 }
 
 .custom-popup-black .leaflet-popup-tip {
-  background: #111; /* a "setinha" do popup também preta */
+  background: #111;
   filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
 }
 
 .custom-popup-black .leaflet-popup-content {
-  margin: 8px 12px;
+  margin: 12px; /* Aumentei levemente para acomodar o autor */
 }
 
-/* Estilo botão remover (só pra deixar harmônico) */
+/* --- NOVAS CLASSES PARA IDENTIDADE DO AUTOR --- */
+
+.author-container {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(212, 175, 55, 0.3); /* Linha divisória dourada sutil */
+}
+
+.author-img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #d4af37;
+  margin-right: 10px;
+  object-fit: cover;
+}
+
+.author-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.author-label {
+  font-size: 10px;
+  color: #888;
+  line-height: 1;
+}
+
+.author-name {
+  font-size: 12px;
+  font-weight: bold;
+  color: #d4af37;
+  display: flex;
+  align-items: center;
+}
+
+.staff-tag {
+  background: #d4af37;
+  color: #111;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 6px;
+  text-transform: uppercase;
+}
+
+/* --- AJUSTE NOS BOTÕES --- */
+
+.popup-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.share-btn {
+  flex: 1;
+  background: #d4af37;
+  color: #111;
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 12px;
+}
+
 .custom-popup-black button.remove-marker-btn {
-  margin-top: 8px;
-  padding: 4px 8px;
+  margin-top: 0; /* Removido margin superior pois agora está no flex */
+  padding: 6px 10px;
   background: #b91c1c;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-}
-
-.custom-popup-black button.remove-marker-btn:hover {
-  background: #8a1414;
 }

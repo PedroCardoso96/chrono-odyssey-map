@@ -91,7 +91,7 @@ const PremiumTimersBanner: React.FC = () => {
         const respawnTime = new Date(timer.nextRespawnAt);
         const diffSeconds = Math.max(0, Math.floor((respawnTime.getTime() - Date.now()) / 1000));
         return { ...timer, remainingSeconds: diffSeconds };
-      }).filter(timer => timer.remainingSeconds > 0);
+      }).filter(timer => timer.remainingSeconds >= 0);
       setTimers(initialTimers);
     } catch (e: any) {
       console.error('Falha ao buscar timers:', e);

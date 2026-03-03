@@ -1,7 +1,8 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
+import i18n from 'i18next';
 
-// A interface do utilizador agora inclui os novos campos
+// Interface atualizada com campos da Fase 1 e Telemetria
 interface UserProfile {
   id: string;
   name: string;
@@ -12,72 +13,131 @@ interface UserProfile {
   nickname?: string;
   bio?: string;
   twitchUrl?: string;
+  language?: string;
+  theme?: string;
 }
 
 interface AuthContextType {
   user: UserProfile | null;
-  token: string | null; // O token agora faz parte do contexto (será o JWT do seu backend)
+  token: string | null;
   login: (googleToken: string) => Promise<void>;
+  loginTwitch: (twitchAccessToken: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
-  updateUserProfile: (updatedFields: Partial<UserProfile>) => void; // Para atualizar o perfil no contexto
+  updateUserProfile: (updatedFields: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(null); // Estado para guardar o JWT do backend
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Este efeito agora carrega tanto o utilizador como o JWT ao iniciar a aplicação
     try {
       const savedUser = localStorage.getItem('user');
-      const savedToken = localStorage.getItem('authToken'); // Carrega o JWT do backend
+      const savedToken = localStorage.getItem('authToken');
       
       if (savedUser && savedToken) {
-        setUser(JSON.parse(savedUser));
-        setToken(savedToken); // Define o JWT no estado
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setToken(savedToken);
+
+        // Garante que o tema e idioma salvos sejam aplicados ao carregar a página
+        if (parsedUser.theme) {
+          document.documentElement.classList.toggle('dark', parsedUser.theme === 'dark');
+        }
+        if (parsedUser.language) {
+          i18n.changeLanguage(parsedUser.language);
+        }
       }
     } catch (error) {
-      console.error("Falha ao carregar sessão do localStorage:", error);
-      localStorage.clear(); // Limpa se houver erro para evitar estados inconsistentes
+      console.error("Falha ao carregar sessão:", error);
+      localStorage.clear();
     }
     setIsLoading(false);
+  }, []);
+
+  // Helper unificado para processar a resposta do backend e sincronizar telemetria regional
+  const handleAuthResponse = useCallback(async (data: any) => {
+    if (data.success && data.user && data.token) {
+      const dbUser = data.user;
+      
+      // 1. Persistência Local
+      localStorage.setItem('user', JSON.stringify(dbUser));
+      localStorage.setItem('authToken', data.token);
+      setUser(dbUser);
+      setToken(data.token);
+      
+      // 2. Sincronização de Tema
+      if (dbUser.theme) {
+        document.documentElement.classList.toggle('dark', dbUser.theme === 'dark');
+      }
+
+      // 3. LÓGICA DE TELEMETRIA REGIONAL (FASE 3)
+      const currentUILanguage = i18n.language; // Idioma detectado/selecionado no navegador
+      const dbLanguage = dbUser.language;
+
+      if (dbLanguage && dbLanguage !== "en") {
+        // Se o banco já tem uma preferência (diferente do padrão "en"), ela tem prioridade
+        i18n.changeLanguage(dbLanguage);
+      } else if (currentUILanguage && currentUILanguage !== dbLanguage) {
+        // Se o banco está no padrão "en" mas o usuário já está usando outro idioma,
+        // sincronizamos o banco para capturar a região real para a triangulação futura.
+        try {
+          await fetch('/api/users/me', {
+            method: 'PATCH',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${data.token}`
+            },
+            body: JSON.stringify({ language: currentUILanguage }),
+          });
+          // Atualiza o estado local para refletir que o idioma agora está mapeado no DB
+          const updatedUser = { ...dbUser, language: currentUILanguage };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        } catch (e) {
+          console.warn("[AUTH] Falha na telemetria regional inicial.");
+        }
+      }
+    } else {
+      throw new Error(data.message || 'Dados de autenticação inválidos.');
+    }
   }, []);
 
   const login = async (googleToken: string) => {
     setIsLoading(true);
     try {
-      // Envia o Google ID Token para a rota de login do seu backend
       const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: googleToken }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Falha na autenticação com o backend');
-      }
-
-      // Espera que o backend retorne { success, token: seuJWT, user }
       const data = await response.json();
-      if (data.success && data.user && data.token) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('authToken', data.token); // Armazena o JWT do seu backend
-        setUser(data.user);
-        setToken(data.token);
-      } else {
-        throw new Error(data.message || 'Resposta da API de login inválida: JWT ou dados do usuário ausentes.');
-      }
+      await handleAuthResponse(data);
     } catch (error) {
-      console.error('Erro no login:', error);
-      localStorage.removeItem('user');
-      localStorage.removeItem('authToken');
-      setUser(null);
-      setToken(null);
+      console.error('Erro no login Google:', error);
+      logout();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginTwitch = async (twitchAccessToken: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/twitch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: twitchAccessToken }),
+      });
+      const data = await response.json();
+      await handleAuthResponse(data);
+    } catch (error) {
+      console.error('Erro no login Twitch:', error);
+      logout();
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +150,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setToken(null);
   };
 
-  // Função para atualizar o perfil do utilizador no contexto e localStorage
   const updateUserProfile = useCallback((updatedFields: Partial<UserProfile>) => {
     setUser(prevUser => {
       if (!prevUser) return null;
@@ -101,7 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading, updateUserProfile }}>
+    <AuthContext.Provider value={{ user, token, login, loginTwitch, logout, isLoading, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,141 +1,161 @@
 // src/routes/auth.ts
 import express, { Request, Response } from 'express';
-import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import { OAuth2Client } from 'google-auth-library';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import axios from 'axios';
 
 dotenv.config();
 const prisma = new PrismaClient();
 const router = express.Router();
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '';
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
-console.log("[AUTH Route] JWT_SECRET carregado (primeiros 5 caracteres):", JWT_SECRET.substring(0, 5));
-
 if (!GOOGLE_CLIENT_ID || !JWT_SECRET) {
-  console.error("ERRO FATAL: As variáveis de ambiente GOOGLE_CLIENT_ID ou JWT_SECRET não estão definidas.");
+  console.error("ERRO FATAL: Variáveis de ambiente incompletas.");
   process.exit(1);
 }
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+// --- HELPER: GERAÇÃO DE TOKEN JWT ---
+const generateToken = (user: any) => {
+  return jwt.sign(
+    { 
+      userId: user.id, 
+      email: user.email, 
+      isPremium: user.isPremium, 
+      isAdmin: user.isAdmin 
+    },
+    JWT_SECRET,
+    { expiresIn: '1d', algorithm: 'HS256' }
+  );
+};
+
+// --- ROTA GOOGLE ---
 router.post('/', async (req: Request, res: Response) => {
   const { token } = req.body;
+  if (!token) return res.status(400).json({ success: false, message: 'Token Google ausente.' });
 
-  if (!token) {
-    return res.status(400).json({ success: false, message: 'Nenhum token do Google fornecido.' });
+  try {
+    const ticket = await client.verifyIdToken({ idToken: token, audience: GOOGLE_CLIENT_ID });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) return res.status(401).json({ success: false });
+
+    let user = await prisma.user.findUnique({ where: { email: payload.email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: payload.email,
+          name: payload.name || 'Usuário',
+          picture: payload.picture,
+          googleId: payload.sub,
+          isAdmin: payload.email === process.env.ADMIN_EMAIL,
+        }
+      });
+    } else if (!user.googleId) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { googleId: payload.sub, picture: payload.picture || user.picture }
+      });
+    }
+
+    const jwtToken = generateToken(user);
+    res.json({ success: true, token: jwtToken, user });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// --- ROTA TWITCH (UNIFICAÇÃO POR OPÇÃO OU E-MAIL) ---
+router.post('/twitch', async (req: Request, res: Response) => {
+  const { accessToken } = req.body;
+  const authHeader = req.headers.authorization; // Captura o JWT se o usuário já estiver logado
+
+  if (!accessToken) {
+    return res.status(400).json({ success: false, message: 'AccessToken Twitch ausente.' });
   }
 
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: GOOGLE_CLIENT_ID,
+    // 1. Validar na Twitch
+    const twitchResponse = await axios.get('https://api.twitch.tv/helix/users', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Client-Id': TWITCH_CLIENT_ID
+      }
     });
 
-    const payload = ticket.getPayload();
+    const twitchData = twitchResponse.data.data[0];
+    if (!twitchData) return res.status(401).json({ success: false, message: 'Usuário Twitch não encontrado.' });
 
-    if (!payload || !payload.email || !payload.sub) {
-      console.warn("[AUTH] Verificação do token Google falhou: payload vazio ou incompleto.");
-      return res.status(401).json({ success: false, message: 'Token do Google inválido ou incompleto.' });
+    const { id: twitchId, login, display_name, email: twitchEmail, profile_image_url } = twitchData;
+
+    let user = null;
+
+    // --- FASE 1.5: VERIFICAÇÃO DE VÍNCULO MANUAL (USUÁRIO JÁ LOGADO) ---
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        console.log(`[AUTH] Solicitado vínculo manual para o usuário ID: ${decoded.userId}`);
+        
+        // Atualiza o usuário logado com o novo TwitchID (mesmo que o e-mail seja diferente)
+        user = await prisma.user.update({
+          where: { id: decoded.userId },
+          data: { 
+            twitchId: twitchId,
+            twitchUrl: `https://twitch.tv/${login}`
+          }
+        });
+      } catch (jwtErr) {
+        console.warn("[AUTH] JWT enviado para vínculo é inválido, tentando unificação por e-mail...");
+      }
     }
 
-    const googleProviderAccountId = payload.sub;
-    const googleEmail = payload.email;
-    const googleName = payload.name || 'Usuário Anônimo';
-    const googlePicture = payload.picture;
+    // --- FASE 1: UNIFICAÇÃO AUTOMÁTICA (SE NÃO HOUVE VÍNCULO MANUAL) ---
+    if (!user) {
+      user = await prisma.user.findUnique({ where: { email: twitchEmail } });
 
-    let userInDb;
-    let accountInDb;
-
-    accountInDb = await prisma.account.findUnique({
-      where: {
-        provider_providerAccountId: {
-          provider: 'google',
-          providerAccountId: googleProviderAccountId,
-        },
-      },
-      include: { user: true },
-    });
-
-    if (accountInDb) {
-      userInDb = accountInDb.user;
-      console.log(`[AUTH] Usuário existente ${userInDb.id} logado via Google.`);
-
-      await prisma.user.update({
-        where: { id: userInDb.id },
-        data: {
-          name: googleName,
-          picture: googlePicture,
-        },
-      });
-
-    } else {
-      userInDb = await prisma.user.findUnique({
-        where: { email: googleEmail },
-      });
-
-      if (userInDb) {
-        console.log(`[AUTH] Nova conta Google vinculada ao usuário existente ${userInDb.id} (via e-mail).`);
-        accountInDb = await prisma.account.create({
-          data: {
-            userId: userInDb.id,
-            provider: 'google',
-            providerAccountId: googleProviderAccountId,
-            id_token: token,
-          },
+      if (user) {
+        // Unifica pelo e-mail
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { 
+            twitchId: twitchId,
+            twitchUrl: `https://twitch.tv/${login}`,
+            picture: user.picture || profile_image_url
+          }
         });
       } else {
-        console.log('[AUTH] Novo usuário e nova conta Google criados.');
-        userInDb = await prisma.user.create({
+        // Cria novo usuário
+        user = await prisma.user.create({
           data: {
-            email: googleEmail,
-            name: googleName,
-            picture: googlePicture,
-            isAdmin: googleEmail === process.env.ADMIN_EMAIL,
-            isPremium: false,
-          },
-        });
-
-        accountInDb = await prisma.account.create({
-          data: {
-            userId: userInDb.id,
-            provider: 'google',
-            providerAccountId: googleProviderAccountId,
-            id_token: token,
-          },
+            email: twitchEmail,
+            name: display_name,
+            twitchId: twitchId,
+            twitchUrl: `https://twitch.tv/${login}`,
+            picture: profile_image_url,
+            isAdmin: twitchEmail === process.env.ADMIN_EMAIL,
+            language: "pt",
+            theme: "dark"
+          }
         });
       }
     }
 
-    // ✅ ADICIONADO: Log para depuração do status isAdmin do usuário do DB
-    console.log(`[AUTH Route] Usuário ${userInDb.id} isAdmin: ${userInDb.isAdmin}`);
-
-    const jwtToken = jwt.sign(
-      { userId: userInDb.id, email: userInDb.email, isPremium: userInDb.isPremium, isAdmin: userInDb.isAdmin },
-      JWT_SECRET,
-      { expiresIn: '1d', algorithm: 'HS256' } // ✅ NESSA LINHA VOCÊ ESCOLHE O TEMPO DE EXPIRAÇÃO DE TOKEN PARA AS SESSÕES
-    );
-
+    const jwtToken = generateToken(user);
     res.json({
       success: true,
       token: jwtToken,
-      user: {
-        id: userInDb.id,
-        name: userInDb.name,
-        email: userInDb.email,
-        picture: userInDb.picture,
-        isAdmin: userInDb.isAdmin,
-        isPremium: userInDb.isPremium,
-        nickname: userInDb.nickname,
-        bio: userInDb.bio,
-        twitchUrl: userInDb.twitchUrl,
-      },
+      user
     });
 
   } catch (error: any) {
-    console.error('Erro na rota de autenticação:', error);
-    res.status(500).json({ success: false, message: 'Erro interno do servidor durante a autenticação.' });
+    console.error('Erro Auth Twitch:', error.response?.data || error.message);
+    res.status(500).json({ success: false, message: 'Falha na unificação da conta.' });
   }
 });
 
